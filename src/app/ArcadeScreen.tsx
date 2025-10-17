@@ -3,13 +3,16 @@ import React from 'react'
 export default function ArcadeScreen({
   children,
   onMouseDown,
+  onMouseMove,
 }: {
   children: React.ReactNode
   onMouseDown?: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void
+  onMouseMove?: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void
 }) {
   return (
     <div
       onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
       className="mx-auto mt-10 mb-16 w-200 h-110 bg-gradient-to-b from-gray-900 to-black border-[12px] border-pink-400 rounded-3xl shadow-2xl flex flex-col items-center relative overflow-hidden"
       tabIndex={0}
     >

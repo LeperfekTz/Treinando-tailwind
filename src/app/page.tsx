@@ -4,6 +4,7 @@ import ArcadeScreen from './ArcadeScreen'
 import Ship from './Ship'
 import Shot from './Shot'
 import Enemies from './Enemies'
+import BonusLevel from './bonus'
 
 type Enemy = { id: number; x: number; y: number; alive: boolean }
 
@@ -33,6 +34,38 @@ export default function HomePage() {
     { id: 5, x: 300, y: 60, alive: true },
   ])
   const [score, setScore] = useState(0)
+
+  // bonus popup state: show overlay when reaching each 1000 points
+  const lastBonusLevelRef = useRef(0)
+  const [showBonusPopup, setShowBonusPopup] = useState(false)
+  const bonusTimerRef = useRef<number | null>(null)
+
+  function hideBonusPopup() {
+    setShowBonusPopup(false)
+    if (bonusTimerRef.current) {
+      clearTimeout(bonusTimerRef.current)
+      bonusTimerRef.current = null
+    }
+  }
+
+  useEffect(() => {
+    const level = Math.floor(score / 10000)
+    if (level > lastBonusLevelRef.current) {
+      lastBonusLevelRef.current = level
+      setShowBonusPopup(true)
+      if (bonusTimerRef.current) clearTimeout(bonusTimerRef.current)
+      bonusTimerRef.current = window.setTimeout(() => {
+        setShowBonusPopup(false)
+        bonusTimerRef.current = null
+      }, 1500)
+    }
+  }, [score])
+
+  useEffect(() => {
+    return () => {
+      if (bonusTimerRef.current) clearTimeout(bonusTimerRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -81,7 +114,7 @@ export default function HomePage() {
         if (hit) return { x: 0, y: 0, active: false }
         return { ...s, y: s.y - 6 }
       })
-    }, 30)
+    }, 3)
     return () => clearInterval(interval)
   }, [shot.active])
 
@@ -95,6 +128,16 @@ export default function HomePage() {
           setShot((s) =>
             s.active ? s : { x: startX, y: startY, active: true }
           )
+        }}
+        onMouseMove={(e) => {
+          // Move ship with cursor X relative to the container
+          const rect = e.currentTarget.getBoundingClientRect()
+          const relX = e.clientX - rect.left
+          const clamped = Math.max(
+            0,
+            Math.min(GAME_WIDTH - SHIP_WIDTH, relX - SHIP_WIDTH / 2)
+          )
+          setShipX(clamped)
         }}
       >
         {/* Fundo animado puro CSS */}
@@ -120,13 +163,15 @@ export default function HomePage() {
                     : e
                 )
               )
-            }, 1000)
+            }, 10)
           }}
         />
         {/* Nave */}
         <Ship x={shipX} />
         {/* Tiro */}
         <Shot x={shot.x} y={shot.y} active={shot.active} />
+        {/* Bonus popup */}
+        {showBonusPopup ? <BonusLevel score={score} /> : null}
       </ArcadeScreen>
     </main>
   )

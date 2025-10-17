@@ -29,3 +29,14 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+@keyframes starfield {
+          0% {
+            background-position-y: 0;
+          }
+          100% {
+            background-position-y: 1000px;
+          }
+        }
+        .animate-starfield {
+          animation: starfield 4s linear infinite;
+        }

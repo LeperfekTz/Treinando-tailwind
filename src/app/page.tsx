@@ -4,7 +4,7 @@ import ArcadeScreen from './ArcadeScreen'
 import Ship from './Ship'
 import Shot from './Shot'
 import Enemies from './Enemies'
-import BonusLevel from './bonus'
+import BonusLevel from './Bonus'
 
 type Enemy = { id: number; x: number; y: number; alive: boolean }
 

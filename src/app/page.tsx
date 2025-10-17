@@ -34,6 +34,7 @@ export default function HomePage() {
     { id: 5, x: 300, y: 60, alive: true },
   ])
   const [score, setScore] = useState(0)
+  const containerWidthRef = useRef<number | null>(null)
 
   // bonus popup state: show overlay when reaching each 1000 points
   const lastBonusLevelRef = useRef(0)
@@ -129,13 +130,16 @@ export default function HomePage() {
             s.active ? s : { x: startX, y: startY, active: true }
           )
         }}
+        hideCursor={true}
         onMouseMove={(e) => {
-          // Move ship with cursor X relative to the container
+          // Move ship with cursor X relative to the container using actual container width
           const rect = e.currentTarget.getBoundingClientRect()
           const relX = e.clientX - rect.left
+          const containerWidth = rect.width
+          containerWidthRef.current = containerWidth
           const clamped = Math.max(
             0,
-            Math.min(GAME_WIDTH - SHIP_WIDTH, relX - SHIP_WIDTH / 2)
+            Math.min(containerWidth - SHIP_WIDTH, relX - SHIP_WIDTH / 2)
           )
           setShipX(clamped)
         }}
@@ -150,7 +154,7 @@ export default function HomePage() {
         <Enemies
           enemies={enemies}
           onEnemyDead={(id) => {
-            // respawn enemy after short delay at random x
+            // respawn enemy after short delay at random x across container width
             setTimeout(() => {
               setEnemies((prev) =>
                 prev.map((e) =>
@@ -158,7 +162,15 @@ export default function HomePage() {
                     ? {
                         ...e,
                         alive: true,
-                        x: Math.floor(Math.random() * (360 - 40)) + 20,
+                        x: (() => {
+                          const cw = containerWidthRef.current ?? 360
+                          const min = 20
+                          const max = Math.max(
+                            min + ENEMY_SIZE,
+                            Math.floor(cw) - 20
+                          )
+                          return Math.floor(Math.random() * (max - min)) + min
+                        })(),
                       }
                     : e
                 )

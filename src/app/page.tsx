@@ -17,10 +17,17 @@ export default function HomePage() {
   const SHOT_HEIGHT = 8
 
   const [shipX, setShipX] = useState(Math.floor((GAME_WIDTH - SHIP_WIDTH) / 2))
+  const [shipY, setShipY] = useState(
+    Math.floor((GAME_HEIGHT - SHIP_HEIGHT) / 2)
+  )
   const shipXRef = useRef(shipX)
+  const shipYRef = useRef(shipY)
   useEffect(() => {
     shipXRef.current = shipX
   }, [shipX])
+  useEffect(() => {
+    shipYRef.current = shipY
+  }, [shipY])
   const [shot, setShot] = useState<{ x: number; y: number; active: boolean }>({
     x: 0,
     y: 0,
@@ -35,6 +42,8 @@ export default function HomePage() {
   ])
   const [score, setScore] = useState(0)
   const containerWidthRef = useRef<number | null>(null)
+  const firingIntervalRef = useRef<number | null>(null)
+  const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null)
 
   // bonus popup state: show overlay when reaching each 1000 points
   const lastBonusLevelRef = useRef(0)
@@ -125,7 +134,7 @@ export default function HomePage() {
         onMouseDown={(e) => {
           // Fire only if there is no active shot. Capture ship X at this moment.
           const startX = shipXRef.current + SHIP_WIDTH / 2
-          const startY = GAME_HEIGHT - SHIP_HEIGHT - SHOT_HEIGHT
+          const startY = shipYRef.current - SHOT_HEIGHT
           setShot((s) =>
             s.active ? s : { x: startX, y: startY, active: true }
           )
@@ -134,14 +143,89 @@ export default function HomePage() {
         onMouseMove={(e) => {
           // Move ship with cursor X relative to the container using actual container width
           const rect = e.currentTarget.getBoundingClientRect()
-          const relX = e.clientX - rect.left
           const containerWidth = rect.width
+          const containerHeight = rect.height
           containerWidthRef.current = containerWidth
-          const clamped = Math.max(
+          // Map pointer to game coordinates (account for possible CSS scaling)
+          const relX = e.clientX - rect.left
+          const relY = e.clientY - rect.top
+          // scale factors
+          const scaleX = containerWidth / GAME_WIDTH
+          const scaleY = containerHeight / GAME_HEIGHT
+          const gameX = relX / scaleX
+          const gameY = relY / scaleY
+          const clampedX = Math.max(
             0,
-            Math.min(containerWidth - SHIP_WIDTH, relX - SHIP_WIDTH / 2)
+            Math.min(GAME_WIDTH - SHIP_WIDTH, gameX - SHIP_WIDTH / 2)
           )
-          setShipX(clamped)
+          // prevent ship from going above vertical midpoint
+          const minY = Math.floor((GAME_HEIGHT - SHIP_HEIGHT) / 2)
+          const clampedY = Math.max(
+            minY,
+            Math.min(GAME_HEIGHT - SHIP_HEIGHT, gameY)
+          )
+          setShipX(clampedX)
+          setShipY(clampedY)
+        }}
+        onPointerDown={(e) => {
+          // prevent default (extra safety) and start auto-fire while finger is down
+          e.preventDefault()
+          const rect = e.currentTarget.getBoundingClientRect()
+          pointerDownPosRef.current = {
+            x: (e as React.PointerEvent<HTMLDivElement>).clientX - rect.left,
+            y: (e as React.PointerEvent<HTMLDivElement>).clientY - rect.top,
+          }
+          // start interval to attempt firing every 200ms
+          if (firingIntervalRef.current == null) {
+            firingIntervalRef.current = window.setInterval(() => {
+              const startX = shipXRef.current + SHIP_WIDTH / 2
+              const startY = shipYRef.current - SHOT_HEIGHT
+              setShot((s) =>
+                s.active ? s : { x: startX, y: startY, active: true }
+              )
+            }, 200)
+          }
+        }}
+        onPointerMove={(e) => {
+          // pointermove uses same logic as mousemove but receives PointerEvent
+          const rect = e.currentTarget.getBoundingClientRect()
+          const containerWidth = rect.width
+          const containerHeight = rect.height
+          containerWidthRef.current = containerWidth
+          const relX =
+            (e as React.PointerEvent<HTMLDivElement>).clientX - rect.left
+          const relY =
+            (e as React.PointerEvent<HTMLDivElement>).clientY - rect.top
+          const scaleX = containerWidth / GAME_WIDTH
+          const scaleY = containerHeight / GAME_HEIGHT
+          const gameX = relX / scaleX
+          const gameY = relY / scaleY
+          const clampedX = Math.max(
+            0,
+            Math.min(GAME_WIDTH - SHIP_WIDTH, gameX - SHIP_WIDTH / 2)
+          )
+          // prevent ship from going above vertical midpoint (same as mouse handler)
+          const minY = Math.floor((GAME_HEIGHT - SHIP_HEIGHT) / 2)
+          const clampedY = Math.max(
+            minY,
+            Math.min(GAME_HEIGHT - SHIP_HEIGHT, gameY)
+          )
+          setShipX(clampedX)
+          setShipY(clampedY)
+        }}
+        onPointerUp={(e) => {
+          // stop auto-fire
+          if (firingIntervalRef.current != null) {
+            clearInterval(firingIntervalRef.current)
+            firingIntervalRef.current = null
+          }
+          pointerDownPosRef.current = null
+          // fire once on pointer up to register a tap shot as well
+          const startX = shipXRef.current + SHIP_WIDTH / 2
+          const startY = shipYRef.current - SHOT_HEIGHT
+          setShot((s) =>
+            s.active ? s : { x: startX, y: startY, active: true }
+          )
         }}
       >
         {/* Fundo animado puro CSS */}
@@ -179,7 +263,7 @@ export default function HomePage() {
           }}
         />
         {/* Nave */}
-        <Ship x={shipX} />
+        <Ship x={shipX} y={shipY} />
         {/* Tiro */}
         <Shot x={shot.x} y={shot.y} active={shot.active} />
         {/* Bonus popup */}

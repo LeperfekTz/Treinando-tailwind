@@ -4,17 +4,27 @@ export default function ArcadeScreen({
   children,
   onMouseDown,
   onMouseMove,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
   hideCursor,
 }: {
   children: React.ReactNode
   onMouseDown?: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void
   onMouseMove?: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void
+  onPointerDown?: (e: React.PointerEvent<HTMLDivElement>) => void
+  onPointerMove?: (e: React.PointerEvent<HTMLDivElement>) => void
+  onPointerUp?: (e: React.PointerEvent<HTMLDivElement>) => void
   hideCursor?: boolean
 }) {
   return (
     <div
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      style={{ touchAction: 'none' }}
       className={`mx-auto w-full h-screen rounded-none bg-gradient-to-b from-gray-900 to-black md:w-[500] md:h-[400] md:border-[12px] border-pink-400 md:rounded-3xl shadow-2xl flex flex-col items-center relative overflow-hidden ${
         hideCursor ? 'cursor-none' : ''
       }`}
